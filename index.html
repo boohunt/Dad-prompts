@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Letters for Our Daughter</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Georgia, "Times New Roman", serif;
+      background: #f6f1e9;
+      color: #2f2a24;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1.5rem;
+    }
+    .card {
+      background: #fffdf9;
+      border: 1px solid #e4dacb;
+      border-radius: 18px;
+      max-width: 520px;
+      width: 100%;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 12px 32px rgba(47, 42, 36, 0.07);
+      text-align: center;
+    }
+    .eyebrow {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #8c7a65;
+      margin-bottom: 0.75rem;
+    }
+    .divider {
+      width: 40px;
+      height: 1px;
+      background: #d8cbb8;
+      margin: 0 auto 1.75rem;
+    }
+    .prompt {
+      font-size: 1.45rem;
+      line-height: 1.5;
+      min-height: 4.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 0 2rem;
+    }
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    button {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #2f2a24;
+      color: #faf6f0;
+      border: none;
+      border-radius: 999px;
+      padding: 0.85rem 1.75rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      width: 100%;
+      max-width: 240px;
+    }
+    button:hover {
+      background: #473f36;
+    }
+    button.secondary {
+      background: transparent;
+      color: #6e5f4f;
+      border: 1px solid #d8cbb8;
+    }
+    button.secondary:hover {
+      background: #f6f1e9;
+    }
+    .footer-note {
+      margin-top: 2rem;
+      font-size: 0.85rem;
+      font-style: italic;
+      color: #8c7a65;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="eyebrow">A Letter Prompt for Today</div>
+    <div class="divider"></div>
+    <p id="prompt-text" class="prompt">Finding a prompt...</p>
+    <div class="actions">
+      <button id="shuffle-btn" type="button">Show another prompt</button>
+      <button id="copy-btn" class="secondary" type="button">Copy prompt</button>
+    </div>
+    <p class="footer-note">Merry Christmas — for all the memories still to come</p>
+  </main>
+
+  <script>
+    // Optional: Paste your published Google Sheet CSV URL inside the quotes below
+    const SHEET_CSV_URL = "";
+
+    // Built-in prompts (used automatically unless a Google Sheet link is added above)
+    const fallbackPrompts = [
+      "The best adventure we've had together was...",
+      "I am proud of you because...",
+      "When you were younger...",
+      "I love that our family...",
+      "When I was younger I wish I had known...",
+      "Here is a favourite story about our family...",
+      "Here is a favourite story about your mum...",
+      "Here is a favourite story about my parents...",
+      "In the future, I hope we...",
+      "My wishes for you are..."
+    ];
+
+    let prompts = [...fallbackPrompts];
+    let currentIndex = -1;
+
+    function showRandomPrompt() {
+      if (!prompts.length) return;
+      let nextIndex = Math.floor(Math.random() * prompts.length);
+      if (prompts.length > 1 && nextIndex === currentIndex) {
+        nextIndex = (nextIndex + 1) % prompts.length;
+      }
+      currentIndex = nextIndex;
+      document.getElementById("prompt-text").textContent = prompts[currentIndex];
+    }
+
+    function parseFirstColumnCsv(csvText) {
+      return csvText
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+          const match = line.match(/^"((?:""|[^"])*)"|([^,]*)/);
+          const cell = match ? (match[1] !== undefined ? match[1].replace(/""/g, '"') : match[2]) : "";
+          return cell.trim();
+        })
+        .filter((cell, idx) => cell && !(idx === 0 && cell.toLowerCase() === "prompt"));
+    }
+
+    async function loadPrompts() {
+      if (!SHEET_CSV_URL.startsWith("http")) {
+        showRandomPrompt();
+        return;
+      }
+      try {
+        const response = await fetch(SHEET_CSV_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error("Network response was not ok");
+        const text = await response.text();
+        const loaded = parseFirstColumnCsv(text);
+        if (loaded.length > 0) {
+          prompts = loaded;
+        }
+      } catch (err) {
+        console.warn("Using fallback prompts:", err);
+      }
+      showRandomPrompt();
+    }
+
+    document.getElementById("shuffle-btn").addEventListener("click", showRandomPrompt);
+
+    document.getElementById("copy-btn").addEventListener("click", async () => {
+      const text = document.getElementById("prompt-text").textContent;
+      const btn = document.getElementById("copy-btn");
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Copy prompt"; }, 1800);
+      } catch (e) {
+        btn.textContent = "Select text to copy";
+      }
+    });
+
+    loadPrompts();
+  </script>
+</body>
+</html>
